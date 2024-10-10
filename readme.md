@@ -14,6 +14,8 @@ wp_easy_setup_process_init => esfw_process_init
 wp_easy_setup_process => esfw_process
 wp_easy_setup_completed => esfw_completed
 wp_easy_setup_set_completed => esfw_set_completed
+wp_easy_setup_step_label => esfw_step_label
+wp_easy_setup_max_steps => esfw_max_steps
 
 ## Requirements
 
