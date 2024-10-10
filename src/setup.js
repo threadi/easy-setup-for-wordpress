@@ -342,7 +342,6 @@ export function setButtonDisabledState( object ) {
       fields_filled_count++;
     }
   })}
-  console.log( fields_count, fields_filled_count )
   object.state.button_disabled = fields_count !== fields_filled_count;
 }
 

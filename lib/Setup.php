@@ -378,7 +378,7 @@ class Setup {
         /**
          * Run actions before setup-process is running.
          *
-         * @since 3.0.0 Available since 3.0.0.
+         * @since 1.0.0 Available since 1.0.0.
          *
          * @param string $config_name The name of the requested setup-configuration.
          */
