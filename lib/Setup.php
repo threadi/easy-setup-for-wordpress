@@ -261,7 +261,7 @@ class Setup {
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => array( $this, 'get_fields' ),
                 'permission_callback' => function () {
-                    return true; //current_user_can( 'manage_options' );
+                    return current_user_can( 'manage_options' );
                 },
             )
         );

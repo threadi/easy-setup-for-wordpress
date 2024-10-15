@@ -335,7 +335,7 @@ export function setButtonDisabledState( object ) {
     else if( object.state.fields[object.state.step][field_name].type === 'TextControl' && ! object.state.fields[object.state.step][field_name].required ) {
       fields_filled_count++;
     }
-    else if( object.state.fields[object.state.step][field_name].type === 'TextControl' && object.state.fields[object.state.step][field_name].required && object.state.results[field_name] && object.state.results[field_name].result.length === 0 ) {
+    else if( object.state.fields[object.state.step][field_name].type === 'TextControl' && object.state.fields[object.state.step][field_name].required && object.state.results[field_name] && object.state.results[field_name].filled && object.state.results[field_name].result.length === 0 ) {
       fields_filled_count++;
     }
     else if( object.state.fields[object.state.step][field_name].type === 'CheckboxControl' ) {
