@@ -561,6 +561,10 @@ class Setup {
      */
     public function uninstall(): void {
         foreach( $this->get_options() as $option_name => $value ) {
+            // bail if this is the config.
+            if( 'esfw_completed' === $option_name ) {
+                return;
+            }
             delete_option( $option_name );
         }
     }
