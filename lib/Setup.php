@@ -497,6 +497,11 @@ class Setup {
             $actual_completed = array();
         }
 
+        // bail if setup is already completed.
+        if( in_array($this->get_config($config_name)['name'], $actual_completed, true ) ) {
+            return;
+        }
+
         // add this setup to the list.
         $actual_completed[] = $this->get_config( $config_name )['name'];
 
@@ -557,16 +562,46 @@ class Setup {
      *
      * Has to be called in uninstall.php.
      *
+     * @param string $config_name The config to remove.
+     *
      * @return void
      */
-    public function uninstall(): void {
+    public function uninstall( string $config_name ): void {
         foreach( $this->get_options() as $option_name => $value ) {
             // bail if this is the config.
             if( 'esfw_completed' === $option_name ) {
-                return;
+                continue;
             }
             delete_option( $option_name );
         }
+
+        // get the completed setting to remove the given config name.
+        $completed = get_option( 'esfw_completed' );
+
+        // bail if completed is empty.
+        if( empty( $completed ) ) {
+            return;
+        }
+
+        // get the entry.
+        $config_entry = array_search( $config_name, $completed, true );
+
+        // bail on not results.
+        if( false === $config_entry ) {
+            return;
+        }
+
+        // remove the entry.
+        unset( $completed[absint( $config_entry )] );
+
+        // if list is empty, simpyl remove the option.
+        if( empty( $completed ) ) {
+            delete_option( 'esfw_completed' );
+            return;
+        }
+
+        // update the option with the new list.
+        update_option( 'esfw_completed', $completed );
     }
 
     /**
