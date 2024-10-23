@@ -499,6 +499,13 @@ class Setup {
 
         // bail if setup is already completed.
         if( in_array($this->get_config($config_name)['name'], $actual_completed, true ) ) {
+            /**
+             * Run tasks if setup has been marked as completed.
+             *
+             * @since 1.0.0 Available since 1.0.0.
+             * @param string $config_name The name of the requested setup-configuration.
+             */
+            do_action( 'esfw_set_completed', $config_name );
             return;
         }
 
