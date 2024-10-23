@@ -445,6 +445,11 @@ class Setup {
         // get actual completed setups.
         $actual_completed = get_option( 'esfw_completed', array() );
 
+        // check if it is an array.
+        if( ! is_array( $actual_completed ) ) {
+            $actual_completed = array();
+        }
+
         // check if requested setup is completed.
         $is_completed = in_array( $config_name, $actual_completed, true );
 
@@ -486,6 +491,11 @@ class Setup {
     public function set_completed( string $config_name ): void {
         // get actual list of completed setups.
         $actual_completed = get_option( 'esfw_completed', array() );
+
+        // check if it is an array.
+        if( ! is_array( $actual_completed ) ) {
+            $actual_completed = array();
+        }
 
         // add this setup to the list.
         $actual_completed[] = $this->get_config( $config_name )['name'];
