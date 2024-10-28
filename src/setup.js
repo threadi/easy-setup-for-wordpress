@@ -280,7 +280,7 @@ export const onSetupCompleted = ( object ) => {
  * @param newValue
  * @param field_name
  */
-export const onChangeField = ( object, field_name, field, newValue,  ) => {
+export const onChangeField = ( object, field_name, field, newValue ) => {
   if( field.validation_callback ) {
     fetch( easy_setup_for_wordpress.validation_url, {
       method: 'POST',
@@ -307,7 +307,7 @@ export const onChangeField = ( object, field_name, field, newValue,  ) => {
   else {
     object.state.results[field_name] = {
       'field_name': field_name,
-      'result': newValue.length > 0 ? '' : 'error'
+      'result': Number.isInteger(newValue) && newValue === 1 ? '' : ( newValue.length > 0 ? '' : 'error' )
     }
   }
   object.setState( {[field_name]: newValue} )
@@ -338,7 +338,10 @@ export function setButtonDisabledState( object ) {
     else if( object.state.fields[object.state.step][field_name].type === 'TextControl' && object.state.fields[object.state.step][field_name].required && object.state.results[field_name] && object.state.results[field_name].filled && object.state.results[field_name].result.length === 0 ) {
       fields_filled_count++;
     }
-    else if( object.state.fields[object.state.step][field_name].type === 'CheckboxControl' ) {
+    else if( object.state.fields[object.state.step][field_name].type === 'CheckboxControl' && ! object.state.fields[object.state.step][field_name].required ) {
+      fields_filled_count++;
+    }
+    else if( object.state.fields[object.state.step][field_name].type === 'CheckboxControl' && object.state.fields[object.state.step][field_name].required && object.state.results[field_name] && object.state.results[field_name].filled ) {
       fields_filled_count++;
     }
   })}
