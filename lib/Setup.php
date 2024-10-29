@@ -485,10 +485,11 @@ class Setup {
      * Set setup to complete.
      *
      * @param string $config_name The config name.
+     * @param bool   $no_hooks Whether to run hooks (false) or not (true).
      *
      * @return void
      */
-    public function set_completed( string $config_name ): void {
+    public function set_completed( string $config_name, bool $no_hooks = false ): void {
         // get actual list of completed setups.
         $actual_completed = get_option( 'esfw_completed', array() );
 
@@ -499,6 +500,9 @@ class Setup {
 
         // bail if setup is already completed.
         if( in_array($this->get_config($config_name)['name'], $actual_completed, true ) ) {
+            if( $no_hooks ) {
+                return;
+            }
             /**
              * Run tasks if setup has been marked as completed.
              *
@@ -515,6 +519,9 @@ class Setup {
         // add the actual setup to the list of completed setups.
         update_option( 'esfw_completed', $actual_completed );
 
+        if( $no_hooks ) {
+            return;
+        }
         /**
          * Run tasks if setup has been marked as completed.
          *
