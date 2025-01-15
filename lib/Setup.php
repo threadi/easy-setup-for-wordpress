@@ -67,6 +67,13 @@ class Setup {
     private string $error_help = '';
 
     /**
+     * The display hook.
+     *
+     * @var string
+     */
+    private string $display_hook = '';
+
+    /**
      * Constructor for Init-Handler.
      */
     private function __construct() {}
@@ -175,12 +182,27 @@ class Setup {
     /**
      * Add our scripts for the setup.
      *
+     * @param string $hook The used hook.
+     *
      * @return void
      */
-    public function add_scripts(): void {
+    public function add_scripts( string $hook ): void {
         // bail if no texts are configured.
         if( empty( $this->get_texts() ) ) {
             return;
+        }
+
+        // bail if page with setup is not called if display hook is set.
+        if( ! empty( $this->get_display_hook() ) ) {
+            // bail if function is used in frontend.
+            if( ! is_admin() ) {
+                return;
+            }
+
+            // bail if no personio page is used.
+            if ( ! str_contains( $hook, $this->get_display_hook() ) ) {
+                return;
+            }
         }
 
         // get absolute path for this package.
@@ -485,10 +507,11 @@ class Setup {
      * Set setup to complete.
      *
      * @param string $config_name The config name.
+     * @param bool   $no_hooks Whether to run hooks (false) or not (true).
      *
      * @return void
      */
-    public function set_completed( string $config_name ): void {
+    public function set_completed( string $config_name, bool $no_hooks = false ): void {
         // get actual list of completed setups.
         $actual_completed = get_option( 'esfw_completed', array() );
 
@@ -499,6 +522,9 @@ class Setup {
 
         // bail if setup is already completed.
         if( in_array($this->get_config($config_name)['name'], $actual_completed, true ) ) {
+            if( $no_hooks ) {
+                return;
+            }
             /**
              * Run tasks if setup has been marked as completed.
              *
@@ -515,6 +541,9 @@ class Setup {
         // add the actual setup to the list of completed setups.
         update_option( 'esfw_completed', $actual_completed );
 
+        if( $no_hooks ) {
+            return;
+        }
         /**
          * Run tasks if setup has been marked as completed.
          *
@@ -765,5 +794,25 @@ class Setup {
         // forward user to given url.
         wp_safe_redirect( $forward_url );
         exit;
+    }
+
+    /**
+     * Return the display hook.
+     *
+     * @return string
+     */
+    private function get_display_hook(): string {
+        return $this->display_hook;
+    }
+
+    /**
+     * Set the used display hook.
+     *
+     * @param string $hook The hook.
+     *
+     * @return void
+     */
+    public function set_display_hook( string $hook ): void {
+        $this->display_hook = $hook;
     }
 }
