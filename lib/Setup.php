@@ -67,6 +67,13 @@ class Setup {
     private string $error_help = '';
 
     /**
+     * The display hook.
+     *
+     * @var string
+     */
+    private string $display_hook = '';
+
+    /**
      * Constructor for Init-Handler.
      */
     private function __construct() {}
@@ -175,12 +182,27 @@ class Setup {
     /**
      * Add our scripts for the setup.
      *
+     * @param string $hook The used hook.
+     *
      * @return void
      */
-    public function add_scripts(): void {
+    public function add_scripts( string $hook ): void {
         // bail if no texts are configured.
         if( empty( $this->get_texts() ) ) {
             return;
+        }
+
+        // bail if page with setup is not called if display hook is set.
+        if( ! empty( $this->get_display_hook() ) ) {
+            // bail if function is used in frontend.
+            if( ! is_admin() ) {
+                return;
+            }
+
+            // bail if no personio page is used.
+            if ( ! str_contains( $hook, $this->get_display_hook() ) ) {
+                return;
+            }
         }
 
         // get absolute path for this package.
@@ -772,5 +794,25 @@ class Setup {
         // forward user to given url.
         wp_safe_redirect( $forward_url );
         exit;
+    }
+
+    /**
+     * Return the display hook.
+     *
+     * @return string
+     */
+    private function get_display_hook(): string {
+        return $this->display_hook;
+    }
+
+    /**
+     * Set the used display hook.
+     *
+     * @param string $hook The hook.
+     *
+     * @return void
+     */
+    public function set_display_hook( string $hook ): void {
+        $this->display_hook = $hook;
     }
 }
