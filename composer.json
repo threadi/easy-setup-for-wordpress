@@ -1,6 +1,6 @@
 {
     "name": "threadi/easy-setup-for-wordpress",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "description": "Provides a simple react-driven plugin-setup for WordPress-backend.",
     "type": "library",
     "license": "GPL-3.0-or-later",

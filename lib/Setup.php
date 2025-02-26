@@ -520,8 +520,8 @@ class Setup {
             $actual_completed = array();
         }
 
-        // bail if setup is already completed.
-        if( in_array($this->get_config($config_name)['name'], $actual_completed, true ) ) {
+        // bail if setup unknown or is already completed.
+        if( empty( $this->get_config($config_name) ) || in_array($this->get_config($config_name)['name'], $actual_completed, true ) ) {
             if( $no_hooks ) {
                 return;
             }
