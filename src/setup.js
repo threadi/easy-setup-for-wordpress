@@ -121,6 +121,12 @@ class EasySetupForWordPress extends Component {
         return <ProgressBarObject field_name={ field_name } field={ field } object={ this } />
 
         /**
+         * Show NumberControl component for setting.
+         */
+      case 'NumberControl':
+        return <NumberControlObject field_name={ field_name } field={ field } object={ this } />;
+
+        /**
          * Return empty string for all other types.
          */
       default:
