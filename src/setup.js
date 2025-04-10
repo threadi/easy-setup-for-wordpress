@@ -11,6 +11,7 @@ import './setup.scss';
 import RadioControlObject from './RadioControlObject';
 import TextControlObject from './TextControlObject';
 import ProgressBarObject from './ProgressBarObject';
+import NumberControlObject from './NumberControlObject';
 import CheckboxControlObject from './CheckboxControlObject';
 import getActualDate from './helper/getActualDate';
 
