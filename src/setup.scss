@@ -19,8 +19,11 @@
 		float: right;
 	}
 
-	.components-panel__body p {
-		line-height: 1.6;
+	.components-panel__body {
+		button { margin-top: 1em }
+		p {
+			line-height: 1.6;
+		}
 	}
 
 	.components-base-control__field > label {
