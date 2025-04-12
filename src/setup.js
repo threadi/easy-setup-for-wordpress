@@ -237,7 +237,13 @@ export const onSaveSetup = ( object ) => {
         'X-WP-Nonce': easy_setup_for_wordpress.rest_nonce
       }
     })
-        .then(response => response.json())
+        .then(function(response) {
+          if( response.ok ) {
+            return response.json();
+          }
+
+          throw new Error(response.status);
+        })
         .then(function (data) {
               object.setState({'fields': data, 'date': getActualDate()});
               // set next step for setup.
@@ -267,7 +273,13 @@ export const onSetupCompleted = ( object ) => {
       'config_name': object.props.config.name,
     })
   } )
-      .then( response => response.json() )
+      .then( function(response) {
+        if( response.ok ) {
+          return response.json();
+        }
+
+        throw new Error(response.status);
+      } )
       .then( function( result ) {
             if( result.forward ) {
               location.href = result.forward;
@@ -303,7 +315,13 @@ export const onChangeField = ( object, field_name, field, newValue ) => {
         'value': newValue
       })
     } )
-        .then( response => response.json() )
+        .then( function(response) {
+          if( response.ok ) {
+            return response.json();
+          }
+
+          throw new Error(response.status);
+        } )
         .then( function( data ) {
               object.state.results[field_name] = data;
               object.setState( { 'date': getActualDate() } )
@@ -361,5 +379,5 @@ export function setButtonDisabledState( object ) {
  * @param error
  */
 export function showError( error ) {
-  alert('The following error occurred: ' + error );
+  alert(easy_setup_for_wordpress.txt_error_1 + ' ' + error);
 }
