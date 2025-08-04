@@ -13,6 +13,7 @@ import TextControlObject from './TextControlObject';
 import ProgressBarObject from './ProgressBarObject';
 import NumberControlObject from './NumberControlObject';
 import CheckboxControlObject from './CheckboxControlObject';
+import ButtonControlObject from './ButtonControlObject';
 import getActualDate from './helper/getActualDate';
 
 // import dependencies.
@@ -126,6 +127,12 @@ class EasySetupForWordPress extends Component {
          */
       case 'NumberControl':
         return <NumberControlObject field_name={ field_name } field={ field } object={ this } />;
+
+        /**
+         * Show Checkbox component for setting.
+         */
+      case 'ButtonControl':
+        return <ButtonControlObject field_name={ field_name } field={ field } object={ this } />;
 
         /**
          * Return empty string for all other types.
@@ -351,7 +358,7 @@ export function setButtonDisabledState( object ) {
     if( object.state[field_name] && object.state.results[field_name] && object.state.results[field_name].result.length === 0 ) {
       fields_filled_count++;
     }
-    else if( object.state.fields[object.state.step][field_name].type === 'Text' ) {
+    else if( object.state.fields[object.state.step][field_name].type === 'Text' || object.state.fields[object.state.step][field_name].type === 'ButtonControl' ) {
       fields_filled_count++;
     }
     else if( object.state.fields[object.state.step][field_name].type === 'ProgressBar' && ! object.state.finish_button_disabled ) {
