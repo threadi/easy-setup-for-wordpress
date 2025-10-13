@@ -139,6 +139,7 @@ class Setup {
      * - continue_button_label => language-specific title for the continue-button
      * - finish_button_label => language-specific title for the finish-button
      * - skip_button_label => language-specific title for the skip-button
+     * - error_label => language-specific text if an error occurred
      *
      * @param array $config The config for the setup.
      *

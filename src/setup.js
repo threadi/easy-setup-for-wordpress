@@ -42,7 +42,8 @@ class EasySetupForWordPress extends Component {
       button_disabled: true, // marker for continue-button-state.
       finish_button_disabled: true, // marker for finish-button-state.
       is_api_loaded: false, // marker if API has been loaded.
-      fields: this.props.fields // the steps with its fields.
+      fields: this.props.fields, // the steps with its fields.
+      error: false // true if any error happened
     };
 
     /**
@@ -84,7 +85,12 @@ class EasySetupForWordPress extends Component {
 
           // set resulting state.
           this.setState(state);
-        } );
+        } ).catch(error => {
+          let state = {
+            error: true
+          }
+          this.setState(state)
+        });
       }
     } );
   }
@@ -160,7 +166,8 @@ class EasySetupForWordPress extends Component {
             </div>
           </div>
           <div className="easy-setup-for-wordpress-main">
-            <Panel>
+            {this.state.error && <p>{ this.props.config.error_label }</p>}
+            {!this.state.error && <Panel>
               <PanelBody>
                 {Object.keys(this.state.fields[this.state.step]).map( field_name => (
                     <div key={ field_name }>{this.renderControlSetting( field_name, this.state.fields[this.state.step][field_name] )}</div>
@@ -197,6 +204,7 @@ class EasySetupForWordPress extends Component {
                 }
               </PanelBody>
             </Panel>
+            }
           </div>
         </Fragment>
     )
