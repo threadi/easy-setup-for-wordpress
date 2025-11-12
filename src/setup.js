@@ -236,7 +236,7 @@ document.addEventListener( 'DOMContentLoaded', () => {
  */
 export const onSaveSetup = ( object ) => {
   // remove internal used parameter.
-  let state = object.state;
+  let state = structuredClone(object.state);
     delete state.is_api_loaded;
     delete state.fields;
     delete state.results;
