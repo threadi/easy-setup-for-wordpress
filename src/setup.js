@@ -237,7 +237,17 @@ document.addEventListener( 'DOMContentLoaded', () => {
 export const onSaveSetup = ( object ) => {
   // remove internal used parameter.
   let state = object.state;
-  delete state.is_api_loaded;
+    delete state.is_api_loaded;
+    delete state.fields;
+    delete state.results;
+    delete state.help;
+    delete state.error;
+    delete state.button_disabled;
+    delete state.finish_button_disabled;
+    delete state.import_settings;
+    delete state.runSetup;
+    delete state.step;
+    delete state.date;
 
   // save it via REST API for settings.
   new api.models.Settings( state ).save();
