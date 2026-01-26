@@ -83,4 +83,15 @@
 		font-style: normal;
 		color: rgb(117, 117, 117);
 	}
+
+    .easy-setup-for-wordpress-table {
+      table-layout: fixed;
+      th, td {
+        padding: .5em 1em;
+        text-align: left;
+      }
+      th:first-child, td:first-child {
+        padding-left: 0;
+      }
+    }
 }
