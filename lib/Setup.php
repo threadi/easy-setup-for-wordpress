@@ -245,6 +245,7 @@ class Setup {
                 'rest_nonce'       => wp_create_nonce( 'wp_rest' ),
                 'get_fields'   => rest_url( 'easy-setup-for-wordpress/v1/fields' ),
                 'validation_url'   => rest_url( 'easy-setup-for-wordpress/v1/validate-field' ),
+                'load_url'   => rest_url( 'easy-setup-for-wordpress/v1/field-values' ),
                 'process_url'      => rest_url( 'easy-setup-for-wordpress/v1/process' ),
                 'process_info_url' => rest_url( 'easy-setup-for-wordpress/v1/get-process-info' ),
                 'completed_url'    => rest_url( 'easy-setup-for-wordpress/v1/completed' ),
@@ -283,6 +284,17 @@ class Setup {
             array(
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => array( $this, 'get_fields' ),
+                'permission_callback' => function () {
+                    return current_user_can( 'manage_options' );
+                },
+            )
+        );
+        register_rest_route(
+            'easy-setup-for-wordpress/v1',
+            '/field-values/',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'get_field_values' ),
                 'permission_callback' => function () {
                     return current_user_can( 'manage_options' );
                 },
@@ -335,6 +347,57 @@ class Setup {
     }
 
     /**
+     * Load the values for a given field via REST API request.
+     *
+     * Returns an array with the following content:
+     * - field_name => the validated field.
+     * - result => array with values for the field.
+     *
+     * @param WP_REST_Request $request The REST API request object.
+     *
+     * @return void
+     */
+    public function get_field_values( WP_REST_Request $request ): void {
+        $validation_result = array(
+            'field_name' => false,
+            'result'     => 'error',
+        );
+
+        // get config-name.
+        $config_name = $request->get_param( 'config_name' );
+
+        // get the setup step.
+        $step = $request->get_param( 'step' );
+
+        // get field-name.
+        $field_name = $request->get_param( 'field_name' );
+
+        // run check if the step and field_name are set.
+        if ( ! empty( $step ) && ! empty( $field_name ) ) {
+            // get setup-fields of the requested configuration.
+            $fields = $this->get_setup_steps( $config_name );
+
+            // set a field for response.
+            $validation_result['field_name'] = $field_name;
+
+            // check if the field exists in the requested step of the requested setup-configuration.
+            if ( ! empty( $fields[ $step ][ $field_name ] ) ) {
+                // get validation-callback for this field.
+                $load_callback = $fields[ $step ][ $field_name ]['load_callback'];
+                if ( ! empty( $load_callback ) ) {
+                    if ( is_callable( $load_callback ) ) {
+                        // call the validation callback and get its results.
+                        $validation_result['result'] = call_user_func( $load_callback );
+                    }
+                }
+            }
+        }
+
+        // Return JSON with results.
+        wp_send_json( $validation_result );
+    }
+
+    /**
      * Validate a given field via REST API request.
      *
      * Sends an array with following content:
@@ -354,7 +417,7 @@ class Setup {
         // get config-name.
         $config_name = $request->get_param( 'config_name' );
 
-        // get setup step.
+        // get the setup step.
         $step = $request->get_param( 'step' );
 
         // get field-name.
@@ -365,13 +428,13 @@ class Setup {
 
         // run check if step and field_name are set.
         if ( ! empty( $step ) && ! empty( $field_name ) ) {
-            // get setup-fields of requested configuration.
+            // get setup-fields of the requested configuration.
             $fields = $this->get_setup_steps( $config_name );
 
-            // set field for response.
+            // set a field for response.
             $validation_result['field_name'] = $field_name;
 
-            // check if field exist in the requested step of the requested setup-configuration.
+            // check if field exists in the requested step of the requested setup-configuration.
             if ( ! empty( $fields[ $step ][ $field_name ] ) ) {
                 // get validation-callback for this field.
                 $validation_callback = $fields[ $step ][ $field_name ]['validation_callback'];
