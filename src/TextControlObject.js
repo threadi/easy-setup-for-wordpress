@@ -57,6 +57,7 @@ export default class TextControlObject extends Component {
         onChange={(value) => onChangeField( this.props.object, this.props.field_name, this.props.field, value )}
         placeholder={this.props.field.placeholder}
         value={this.props.object.state[this.props.field_name]}
+        __next40pxDefaultSize
     />
   }
 }
