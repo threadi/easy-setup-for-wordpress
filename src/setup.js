@@ -64,6 +64,12 @@ class EasySetupForWordPress extends Component {
      * Get actual values for each setting.
      */
     componentDidMount() {
+        if ( this.props.config.user_values ) {
+            this.loadUserValues();
+
+            return;
+        }
+
         api.loadPromise.then( () => {
             const { is_api_loaded } = this.state;
             if ( is_api_loaded === false ) {
@@ -97,6 +103,44 @@ class EasySetupForWordPress extends Component {
                 });
             }
         } );
+    }
+
+    /**
+     * Load the values of the current user for this setup.
+     */
+    loadUserValues() {
+        let object = this;
+
+        fetch( easy_setup_for_wordpress.values_url + '/' + this.props.config.name, {
+            method: 'GET',
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': easy_setup_for_wordpress.rest_nonce
+            }
+        } )
+            .then( function ( response ) {
+                if ( response.ok ) {
+                    return response.json();
+                }
+
+                throw new Error( response.status );
+            } )
+            .then( function ( data ) {
+                let state = { results: {}, is_api_loaded: true };
+
+                Object.keys( object.state.fields ).map( step => {
+                    Object.keys( object.state.fields[step] ).map( field_name => {
+                        if ( data[field_name] !== undefined ) {
+                            state[field_name] = data[field_name];
+                            state.results[field_name] = { 'field_name': field_name, 'result': '' };
+                        }
+                    } );
+                } );
+
+                object.setState( state );
+            } )
+            .catch( error => showError( error ) );
     }
 
     /**
@@ -307,8 +351,26 @@ export const onSaveSetup = ( object ) => {
     delete state.date;
     delete state.loaded;
 
-    // save it via REST API for settings.
-    const save_request = new api.models.Settings( state ).save();
+    // save the values, per user or site-wide.
+    let save_request;
+
+    if ( object.props.config.user_values ) {
+        save_request = fetch( easy_setup_for_wordpress.save_values_url, {
+            method: 'POST',
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': easy_setup_for_wordpress.rest_nonce
+            },
+            body: JSON.stringify( {
+                'config_name': object.props.config.name,
+                'values': state
+            } )
+        } );
+    }
+    else {
+        save_request = new api.models.Settings( state ).save();
+    }
 
     // get actual setup config.
     if( object.props.config.update_fields ) {
