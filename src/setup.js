@@ -15,6 +15,7 @@ import ProgressBarObject from './ProgressBarObject';
 import NumberControlObject from './NumberControlObject';
 import CheckboxControlObject from './CheckboxControlObject';
 import ButtonControlObject from './ButtonControlObject';
+import CardControlObject from './CardControlObject';
 import TableObject from './TableObject';
 import getActualDate from './helper/getActualDate';
 
@@ -159,6 +160,12 @@ class EasySetupForWordPress extends Component {
                 return <RadioControlObject field_name={ field_name } field={ field } object={ this } />;
 
             /**
+             * Show CardControl component for setting.
+             */
+            case 'CardControl':
+                return <CardControlObject field_name={ field_name } field={ field } object={ this } />;
+
+            /**
              * Show SelectControl component for setting.
              */
             case 'SelectControl':
@@ -301,18 +308,24 @@ export const onSaveSetup = ( object ) => {
     delete state.loaded;
 
     // save it via REST API for settings.
-    new api.models.Settings( state ).save();
+    const save_request = new api.models.Settings( state ).save();
 
     // get actual setup config.
     if( object.props.config.update_fields ) {
-        fetch(easy_setup_for_wordpress.get_fields + '/' + object.props.config.name, {
-            method: 'GET',
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': easy_setup_for_wordpress.rest_nonce
-            }
-        })
+        // wait for the save to finish before asking for the fields: they may
+        // depend on the value we just saved, and asking earlier would deliver
+        // the state of the previous step.
+        Promise.resolve( save_request )
+            .then(function () {
+                return fetch(easy_setup_for_wordpress.get_fields + '/' + object.props.config.name, {
+                    method: 'GET',
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': easy_setup_for_wordpress.rest_nonce
+                    }
+                });
+            })
             .then(function(response) {
                 if( response.ok ) {
                     return response.json();
@@ -321,9 +334,7 @@ export const onSaveSetup = ( object ) => {
                 throw new Error(response.status);
             })
             .then(function (data) {
-                    object.setState({'fields': data, 'date': getActualDate()});
-                    // set the next step for setup.
-                    object.setState({'step': object.state.step + 1});
+                    object.setState({'fields': data, 'date': getActualDate(), 'step': object.state.step + 1});
                 }
             )
             .catch(error => showError(error));

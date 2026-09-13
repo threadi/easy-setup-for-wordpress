@@ -95,3 +95,80 @@
       }
     }
 }
+
+/**
+ * Styles for the CardControl.
+ *
+ */
+.easy-setup-for-wordpress-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.easy-setup-for-wordpress-card {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 6px;
+	padding: 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	margin-top: 0 !important;
+	cursor: pointer;
+	text-align: left;
+	height: 100%;
+
+	&:hover {
+		border-color: #949494;
+	}
+
+	&:focus-visible {
+		outline: 2px solid #3858e9;
+		outline-offset: 1px;
+	}
+
+	&.is-selected {
+		border-color: #3858e9;
+		box-shadow: 0 0 0 1px #3858e9;
+	}
+}
+
+.easy-setup-for-wordpress-card__icon {
+	display: block;
+	width: 32px;
+	height: 32px;
+
+	span { margin-left: 0 !important }
+
+	.dashicons { font-size: 28px }
+
+	svg, img {
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+
+	label { cursor: pointer }
+}
+
+.easy-setup-for-wordpress-card__label {
+	font-weight: 600;
+	font-size: 14px;
+	line-height: 1.3;
+}
+
+.easy-setup-for-wordpress-card__description {
+	font-size: 12px;
+	line-height: 1.4;
+	color: rgb(117, 117, 117);
+	white-space: normal;
+}
+
+.easy-setup-for-wordpress-cards.easy-setup-for-wordpress-error {
+	.easy-setup-for-wordpress-card {
+		border-color: red;
+	}
+}

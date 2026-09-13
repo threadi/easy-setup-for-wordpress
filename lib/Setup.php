@@ -206,11 +206,17 @@ class Setup {
             }
         }
 
-        // get absolute path for this package.
-        $path = __DIR__.'/../';
+        // build path and URL from the plugin, never from __DIR__: during
+        // development composer may symlink this package from somewhere else,
+        // and __DIR__ would then resolve outside the plugin directory.
+        $path = trailingslashit( $this->get_path() ) . 'vendor/threadi/easy-setup-for-wordpress/';
+        $url  = trailingslashit( plugins_url( '', $path ) ) . 'easy-setup-for-wordpress/';
 
-        // get the URL were we could call our scripts.
-        $url = $this->get_url().'/'.str_replace($this->get_path(), '', $this->get_vendor_path()).'/threadi/easy-setup-for-wordpress/';
+        // fall back to the location of this file if no plugin path was set.
+        if ( '' === $this->get_path() || ! file_exists( $path . 'build/setup.asset.php' ) ) {
+            $path = trailingslashit( dirname( __DIR__ ) );
+            $url  = trailingslashit( $this->get_url() ) . trailingslashit( $this->get_vendor_path() ) . 'threadi/easy-setup-for-wordpress/';
+        }
 
         // embed the setup-JS-script.
         $script_asset_path = $path . 'build/setup.asset.php';
