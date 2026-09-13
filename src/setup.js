@@ -61,6 +61,40 @@ class EasySetupForWordPress extends Component {
     }
 
     /**
+     * Add the defaults of fields the server had no value for.
+     *
+     * Called after loading, since the loading replaces the whole results
+     * object — a default set in the constructor would be lost.
+     *
+     * @param state The state being built.
+     */
+    addDefaultsToState( state ) {
+        Object.keys( this.state.fields ).map( step => {
+            Object.keys( this.state.fields[step] ).map( field_name => {
+                // skip fields the server delivered a value for.
+                if ( undefined !== state[field_name] ) {
+                    return;
+                }
+
+                // skip fields without a default.
+                if ( undefined === this.state.fields[step][field_name].default ) {
+                    return;
+                }
+
+                state[field_name] = this.state.fields[step][field_name].default;
+
+                // mark it as valid, otherwise the continue button stays
+                // disabled until the user touches the field.
+                state.results[field_name] = {
+                    'result': []
+                };
+            } );
+        } );
+
+        return state;
+    }
+
+    /**
      * Get actual values for each setting.
      */
     componentDidMount() {
@@ -94,7 +128,7 @@ class EasySetupForWordPress extends Component {
                     });
 
                     // set resulting state.
-                    this.setState(state);
+                    this.setState( this.addDefaultsToState( state ) );
                 } ).catch(error => {
                     let state = {
                         error: true
@@ -138,7 +172,7 @@ class EasySetupForWordPress extends Component {
                     } );
                 } );
 
-                object.setState( state );
+                object.setState( object.addDefaultsToState( state ) );
             } )
             .catch( error => showError( error ) );
     }
