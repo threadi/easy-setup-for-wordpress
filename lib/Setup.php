@@ -74,6 +74,13 @@ class Setup {
     private string $display_hook = '';
 
     /**
+     * Marker whether values are stored per user instead of site-wide.
+     *
+     * @var bool
+     */
+    private bool $user_values = false;
+
+    /**
      * Constructor for Init-Handler.
      */
     private function __construct() {}
@@ -206,11 +213,17 @@ class Setup {
             }
         }
 
-        // get absolute path for this package.
-        $path = __DIR__.'/../';
+        // build path and URL from the plugin, never from __DIR__: during
+        // development composer may symlink this package from somewhere else,
+        // and __DIR__ would then resolve outside the plugin directory.
+        $path = trailingslashit( $this->get_path() ) . 'vendor/threadi/easy-setup-for-wordpress/';
+        $url  = trailingslashit( plugins_url( '', $path ) ) . 'easy-setup-for-wordpress/';
 
-        // get the URL were we could call our scripts.
-        $url = $this->get_url().'/'.str_replace($this->get_path(), '', $this->get_vendor_path()).'/threadi/easy-setup-for-wordpress/';
+        // fall back to the location of this file if no plugin path was set.
+        if ( '' === $this->get_path() || ! file_exists( $path . 'build/setup.asset.php' ) ) {
+            $path = trailingslashit( dirname( __DIR__ ) );
+            $url  = trailingslashit( $this->get_url() ) . trailingslashit( $this->get_vendor_path() ) . 'threadi/easy-setup-for-wordpress/';
+        }
 
         // embed the setup-JS-script.
         $script_asset_path = $path . 'build/setup.asset.php';
@@ -249,6 +262,8 @@ class Setup {
                 'process_url'      => rest_url( 'easy-setup-for-wordpress/v1/process' ),
                 'process_info_url' => rest_url( 'easy-setup-for-wordpress/v1/get-process-info' ),
                 'completed_url'    => rest_url( 'easy-setup-for-wordpress/v1/completed' ),
+                'values_url'       => rest_url( 'easy-setup-for-wordpress/v1/values' ),
+                'save_values_url'  => rest_url( 'easy-setup-for-wordpress/v1/save-values' ),
                 'title_error'      => $this->get_texts()['title_error'],
                 'txt_error_1'      => $this->get_texts()['txt_error_1'],
                 'txt_error_2'      => $this->get_texts()['txt_error_2'],
@@ -339,6 +354,29 @@ class Setup {
             array(
                 'methods'             => WP_REST_Server::CREATABLE,
                 'callback'            => array( $this, 'set_completed_by_request' ),
+                'permission_callback' => function () {
+                    return current_user_can( 'manage_options' );
+                },
+            )
+        );
+
+        register_rest_route(
+            'easy-setup-for-wordpress/v1',
+            '/values/(?P<config_name>[a-zA-Z0-9-]+)',
+            array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_values_by_request' ),
+                'permission_callback' => function () {
+                    return current_user_can( 'manage_options' );
+                },
+            )
+        );
+        register_rest_route(
+            'easy-setup-for-wordpress/v1',
+            '/save-values/',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'save_values_by_request' ),
                 'permission_callback' => function () {
                     return current_user_can( 'manage_options' );
                 },
@@ -878,5 +916,177 @@ class Setup {
      */
     public function set_display_hook( string $hook ): void {
         $this->display_hook = $hook;
+    }
+
+    /**
+     * Return whether the given configuration stores its values per user.
+     *
+     * @param string $config_name The name of the setup-configuration.
+     *
+     * @return bool
+     */
+    private function uses_user_values( string $config_name ): bool {
+        return $this->user_values;
+    }
+
+    /**
+     * Return the meta key under which the values of a configuration are kept.
+     *
+     * @param string $config_name The name of the setup-configuration.
+     *
+     * @return string
+     */
+    private function get_values_key( string $config_name ): string {
+        return 'esfw_values_' . $config_name;
+    }
+
+    /**
+     * Return a single value of the running setup.
+     *
+     * @param string $config_name The name of the setup-configuration.
+     * @param string $field_name  The name of the field.
+     * @param mixed  $default_value The value to return if nothing is stored.
+     *
+     * @return mixed
+     */
+    public function get_field_value( string $config_name, string $field_name, mixed $default_value = '' ) {
+        // site-wide storage via the settings API.
+        if ( ! $this->uses_user_values( $config_name ) ) {
+            return get_option( $field_name, $default_value );
+        }
+
+        $values = get_user_meta( get_current_user_id(), $this->get_values_key( $config_name ), true );
+
+        if ( ! is_array( $values ) || ! array_key_exists( $field_name, $values ) ) {
+            return $default_value;
+        }
+
+        return $values[ $field_name ];
+    }
+
+    /**
+     * Set a field value.
+     *
+     * @param string $config_name The name of the setup-configuration.
+     * @param string $field_name The name of the field.
+     * @param mixed $value The value to return if nothing is stored.
+     * @return void
+     */
+    public function set_field_value( string $config_name, string $field_name, mixed $value ): void {
+        if ( ! $this->uses_user_values( $config_name ) ) {
+            update_option( $field_name, $value );
+
+            return;
+        }
+
+        $values = $this->get_field_values_of( $config_name );
+
+        $values[ $field_name ] = $value;
+
+        update_user_meta( get_current_user_id(), $this->get_values_key( $config_name ), $values );
+    }
+
+    /**
+     * Return every value of the running setup.
+     *
+     * @param string $config_name The name of the setup-configuration.
+     *
+     * @return array<string,mixed>
+     */
+    public function get_field_values_of( string $config_name ): array {
+        // site-wide storage is read by the client from the settings API.
+        if ( ! $this->uses_user_values( $config_name ) ) {
+            return array();
+        }
+
+        $values = get_user_meta( get_current_user_id(), $this->get_values_key( $config_name ), true );
+
+        if ( ! is_array( $values ) ) {
+            return array();
+        }
+
+        return $values;
+    }
+
+    /**
+     * Remove every value of the running setup.
+     *
+     * @param string $config_name The name of the setup-configuration.
+     *
+     * @return void
+     */
+    public function delete_field_values( string $config_name ): void {
+        if ( ! $this->uses_user_values( $config_name ) ) {
+            return;
+        }
+
+        delete_user_meta( get_current_user_id(), $this->get_values_key( $config_name ) );
+    }
+
+    /**
+     * Return the values of the running setup for the current user.
+     *
+     * @param WP_REST_Request $request The request.
+     *
+     * @return void
+     */
+    public function get_values_by_request( WP_REST_Request $request ): void {
+        wp_send_json( $this->get_field_values_of( (string) $request->get_param( 'config_name' ) ) );
+    }
+
+    /**
+     * Store the values of the running setup for the current user.
+     *
+     * @param WP_REST_Request $request The request.
+     *
+     * @return void
+     */
+    public function save_values_by_request( WP_REST_Request $request ): void {
+        $config_name = (string) $request->get_param( 'config_name' );
+        $values      = $request->get_param( 'values' );
+
+        if ( ! is_array( $values ) ) {
+            $values = array();
+        }
+
+        // keep only fields the configuration actually knows, and clean them up.
+        $known  = array();
+        $stored = array();
+
+        foreach ( $this->get_setup_steps( $config_name ) as $fields ) {
+            foreach ( array_keys( $fields ) as $field_name ) {
+                $known[] = $field_name;
+            }
+        }
+
+        foreach ( $values as $field_name => $value ) {
+            if ( ! in_array( $field_name, $known, true ) ) {
+                continue;
+            }
+
+            if ( ! is_scalar( $value ) ) {
+                continue;
+            }
+
+            $stored[ $field_name ] = sanitize_text_field( (string) $value );
+        }
+
+        update_user_meta( get_current_user_id(), $this->get_values_key( $config_name ), $stored );
+
+        wp_send_json( $stored );
+    }
+
+    /**
+     * Set whether values are stored per user.
+     *
+     * Must be called before the configuration is set, since building the
+     * steps may already read stored values.
+     *
+     * @param bool $user_values True to store the values in user meta.
+     *
+     * @return void
+     */
+    public function set_user_values( bool $user_values ): void {
+        $this->user_values = $user_values;
     }
 }

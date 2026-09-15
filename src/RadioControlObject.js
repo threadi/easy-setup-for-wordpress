@@ -7,7 +7,7 @@ import { Component } from '@wordpress/element';
 import { RadioControl } from '@wordpress/components';
 
 /**
- * Declare our custom TextControl-object
+ * Declare our custom RadioControl-object
  */
 export default class RadioControlObject extends Component {
   constructor() {
