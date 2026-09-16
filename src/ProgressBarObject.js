@@ -60,8 +60,10 @@ export default class ProgressBarObject extends Component {
    * Start processing the setup.
    */
   componentDidMount() {
-    // start process.
-    setTimeout( ()  => {
+    const save_promise = this.props.object.state.save_promise || Promise.resolve();
+
+    // wait until the settings have been saved, the process needs them.
+    save_promise.then( () => {
       fetch( easy_setup_for_wordpress.process_url, {
         method: 'POST',
         headers: {
@@ -69,14 +71,11 @@ export default class ProgressBarObject extends Component {
           'Content-Type': 'application/json',
           'X-WP-Nonce': easy_setup_for_wordpress.rest_nonce
         },
-        body: JSON.stringify({
-          'config_name': this.props.object.props.config.name,
-        })
-      } )
-          .catch( error => showError( error ) )
-      // get info about process every x ms.
+        body: JSON.stringify( { config_name: this.props.object.props.config.name } )
+      } ).catch( e => showError( e ) );
+
       getProcessInfo( this );
-    }, 500 );
+    } ).catch( e => showError( e ) );
   }
 
   /**
