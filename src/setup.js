@@ -47,7 +47,8 @@ class EasySetupForWordPress extends Component {
             is_api_loaded: false, // marker if API has been loaded.
             fields: this.props.fields, // the steps with its fields.
             error: false, // true if any error happened
-            loaded: {} // loaded values for fields
+            loaded: {}, // loaded values for fields
+            save_promise: null
         };
 
         /**
@@ -385,6 +386,9 @@ export const onSaveSetup = ( object ) => {
     delete state.date;
     delete state.loaded;
 
+    // disable the continue button while the values are saved.
+    object.setState( { 'button_disabled': true } );
+
     // save the values, per user or site-wide.
     let save_request;
 
@@ -436,8 +440,13 @@ export const onSaveSetup = ( object ) => {
             .catch(error => showError(error));
     }
     else {
-        // set the next step for setup.
-        object.setState({'step': object.state.step + 1});
+        // wait for the save to finish before showing the next step: its process may
+        // depend on the values we just saved.
+        Promise.resolve( save_request )
+            .then( function () {
+                object.setState( { 'step': object.state.step + 1 } );
+            } )
+            .catch( error => showError( error ) );
     }
 }
 
