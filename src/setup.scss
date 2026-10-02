@@ -1,6 +1,6 @@
 #easy-setup-for-wordpress {
 	margin: 3em auto 0;
-	width: 40%;
+	width: 90%;
 	min-width: 480px;
 
 	.easy-setup-for-wordpress-header {
@@ -94,6 +94,18 @@
         padding-left: 0;
       }
     }
+}
+
+@media (min-width:1000px) {
+	#easy-setup-for-wordpress {
+		width: 80%;
+	}
+}
+
+@media (min-width:1200px) {
+	#easy-setup-for-wordpress {
+		width: 60%;
+	}
 }
 
 /**
