@@ -54,3 +54,7 @@ jobs:
           PRE=""
           case "$TAG" in *-*) PRE="--prerelease";; esac
           gh release create "$TAG" --generate-notes $PRE
+
+      - name: Remove trigger tag
+        if: github.event_name == 'push'
+        run: git push origin ":refs/tags/${GITHUB_REF_NAME}"
