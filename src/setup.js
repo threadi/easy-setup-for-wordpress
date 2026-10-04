@@ -29,6 +29,7 @@ import {
     Button,
     Panel,
     PanelBody,
+    Spinner,
 } from '@wordpress/components';
 import React from 'react'
 import { render } from 'react-dom';
@@ -48,7 +49,8 @@ class EasySetupForWordPress extends Component {
             fields: this.props.fields, // the steps with its fields.
             error: false, // true if any error happened
             loaded: {}, // loaded values for fields
-            save_promise: null
+            save_promise: null,
+            saving: false // true while a step is being saved.
         };
 
         /**
@@ -175,7 +177,10 @@ class EasySetupForWordPress extends Component {
 
                 object.setState( object.addDefaultsToState( state ) );
             } )
-            .catch( error => showError( error ) );
+            .catch( error => {
+                object.setState( { error: true } );
+                showError( error );
+            } );
     }
 
     /**
@@ -303,7 +308,8 @@ class EasySetupForWordPress extends Component {
                 </div>
                 <div className="easy-setup-for-wordpress-main">
                     {this.state.error && <p>{ this.props.config.error_label }</p>}
-                    {!this.state.error && <Panel>
+                    {!this.state.error && !this.state.is_api_loaded && <Spinner />}
+                    {!this.state.error && this.state.is_api_loaded && <Panel>
                         <PanelBody>
                             {Object.keys(this.state.fields[this.state.step]).map( field_name => (
                                 <div key={ field_name }>{this.renderControlSetting( field_name, this.state.fields[this.state.step][field_name] )}</div>
@@ -324,7 +330,7 @@ class EasySetupForWordPress extends Component {
                             }
                             {this.state.step < Object.keys(this.state.fields).length && <Button
                                 isPrimary
-                                disabled={this.state.button_disabled}
+                                disabled={this.state.button_disabled || this.state.saving}
                                 onClick={() => onSaveSetup( this )}
                             >
                                 { <span dangerouslySetInnerHTML={{__html: this.props.config.continue_button_label}}/> }
@@ -371,6 +377,11 @@ document.addEventListener( 'DOMContentLoaded', () => {
  * Save the fields of the actual setup step via REST API.
  */
 export const onSaveSetup = ( object ) => {
+    // bail if a save is already running.
+    if ( object.state.saving ) {
+        return;
+    }
+
     // remove internal used parameter.
     let state = structuredClone(object.state);
     delete state.is_api_loaded;
@@ -385,9 +396,14 @@ export const onSaveSetup = ( object ) => {
     delete state.step;
     delete state.date;
     delete state.loaded;
+    delete state.saving;
 
-    // disable the continue button while the values are saved.
-    object.setState( { 'button_disabled': true } );
+    // the step to show next. Calculated now, so the answer cannot count it up twice.
+    const next_step = object.state.step + 1;
+
+    // disable the continue button while the values are saved. This needs a marker of
+    // its own: "button_disabled" is recalculated from the fields on every rendering.
+    object.setState( { 'saving': true } );
 
     // save the values, per user or site-wide.
     let save_request;
@@ -434,19 +450,25 @@ export const onSaveSetup = ( object ) => {
                 throw new Error(response.status);
             })
             .then(function (data) {
-                    object.setState({'fields': data, 'date': getActualDate(), 'step': object.state.step + 1});
+                    object.setState({'fields': data, 'date': getActualDate(), 'step': next_step, 'saving': false});
                 }
             )
-            .catch(error => showError(error));
+            .catch(error => {
+                object.setState( { 'saving': false } );
+                showError(error);
+            });
     }
     else {
         // wait for the save to finish before showing the next step: its process may
         // depend on the values we just saved.
         Promise.resolve( save_request )
             .then( function () {
-                object.setState( { 'step': object.state.step + 1 } );
+                object.setState( { 'step': next_step, 'saving': false } );
             } )
-            .catch( error => showError( error ) );
+            .catch( error => {
+                object.setState( { 'saving': false } );
+                showError( error );
+            } );
     }
 }
 
