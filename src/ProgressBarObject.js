@@ -25,6 +25,12 @@ function getProcessInfo( object ) {
     } )
         .then( response => response.json() )
         .then( function (result) {
+          // the process has not been started yet (or the state is from a previous run): ask again.
+          if( 1 !== result.running && ! object.process_done ) {
+            getProcessInfo( object );
+            return;
+          }
+
           if( result.step > 0 && result.max > 0 ) {
             // set progress.
             document.getElementById( object.progressbar_id ).value = ((result.step / result.max) * 100);
@@ -54,6 +60,7 @@ export default class ProgressBarObject extends Component {
     super( ...arguments );
     this.progressbar_id = newId();
     this.label_id = newId();
+    this.process_done = false;
   }
 
   /**
@@ -75,7 +82,9 @@ export default class ProgressBarObject extends Component {
       } ).catch( e => showError( e ) );
 
       getProcessInfo( this );
-    } ).catch( e => showError( e ) );
+    } )
+    .then( () => { this.process_done = true; } )
+    .catch( e => { this.process_done = true; showError( e ); } );
   }
 
   /**
