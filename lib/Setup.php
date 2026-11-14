@@ -980,7 +980,22 @@ class Setup {
 			return $default_value;
 		}
 
-		return $values[ $field_name ];
+		// return other values as they are stored.
+		if ( ! $this->is_password_field( $config_name, $field_name ) ) {
+			return $values[ $field_name ];
+		}
+
+		/**
+		 * Filter the stored value of a password field before it is used, e.g. to decrypt it.
+		 *
+		 * The value has been stored as returned by the filter "esfw_save_password_value".
+		 *
+		 * @since 1.6.0 Available since 1.6.0.
+		 * @param string $value       The stored value.
+		 * @param string $field_name  The name of the field.
+		 * @param string $config_name The name of the setup-configuration.
+		 */
+		return apply_filters( 'esfw_get_password_value', (string) $values[ $field_name ], $field_name, $config_name );
 	}
 
 	/**
@@ -1050,7 +1065,11 @@ class Setup {
 	 * @return void
 	 */
 	public function get_values_by_request( WP_REST_Request $request ): void {
-		wp_send_json( $this->get_field_values_of( (string) $request->get_param( 'config_name' ) ) );
+		// get the name of the configuration.
+		$config_name = (string) $request->get_param( 'config_name' );
+
+		// send the values, but never the passwords.
+		wp_send_json( $this->remove_password_values( $config_name, $this->get_field_values_of( $config_name ) ) );
 	}
 
 	/**
@@ -1078,6 +1097,9 @@ class Setup {
 			}
 		}
 
+		// get the stored values: the browser does not know the stored passwords.
+		$previous = $this->get_field_values_of( $config_name );
+
 		foreach ( $values as $field_name => $value ) {
 			if ( ! in_array( $field_name, $known, true ) ) {
 				continue;
@@ -1087,12 +1109,106 @@ class Setup {
 				continue;
 			}
 
+			// store passwords as they are entered, sanitizing would change them.
+			if ( $this->is_password_field( $config_name, (string) $field_name ) ) {
+				// an empty field keeps the stored password.
+				if ( '' === (string) $value ) {
+					continue;
+				}
+
+				/**
+				 * Filter the value of a password field before it is stored, e.g. to encrypt it.
+				 *
+				 * Use the filter "esfw_get_password_value" to change it back before it is used.
+				 *
+				 * @since 1.6.0 Available since 1.6.0.
+				 * @param string $value       The entered value.
+				 * @param string $field_name  The name of the field.
+				 * @param string $config_name The name of the setup-configuration.
+				 */
+				$stored[ $field_name ] = (string) apply_filters( 'esfw_save_password_value', (string) $value, (string) $field_name, $config_name );
+				continue;
+			}
+
 			$stored[ $field_name ] = sanitize_text_field( (string) $value );
+		}
+
+		// keep the stored passwords, which have not been entered again.
+		foreach ( $known as $field_name ) {
+			// bail if a value has been entered.
+			if ( isset( $stored[ $field_name ] ) ) {
+				continue;
+			}
+
+			// bail if this is not a password field or no password is stored.
+			if ( ! isset( $previous[ $field_name ] ) || ! $this->is_password_field( $config_name, (string) $field_name ) ) {
+				continue;
+			}
+
+			$stored[ $field_name ] = $previous[ $field_name ];
 		}
 
 		update_user_meta( get_current_user_id(), $this->get_values_key( $config_name ), $stored );
 
-		wp_send_json( $stored );
+		// send the stored values, but never the passwords.
+		wp_send_json( $this->remove_password_values( $config_name, $stored ) );
+	}
+
+	/**
+	 * Return the type of a field of a setup-configuration.
+	 *
+	 * @param string $config_name The name of the setup-configuration.
+	 * @param string $field_name  The name of the field.
+	 *
+	 * @return string
+	 */
+	private function get_field_type( string $config_name, string $field_name ): string {
+		foreach ( $this->get_setup_steps( $config_name ) as $fields ) {
+			// bail if the field is not part of this step.
+			if ( ! is_array( $fields ) || empty( $fields[ $field_name ] ) || ! is_array( $fields[ $field_name ] ) ) {
+				continue;
+			}
+
+			// return its type.
+			return isset( $fields[ $field_name ]['type'] ) && is_string( $fields[ $field_name ]['type'] ) ? $fields[ $field_name ]['type'] : '';
+		}
+
+		// return empty string if the field is unknown.
+		return '';
+	}
+
+	/**
+	 * Return whether the given field is a password field.
+	 *
+	 * @param string $config_name The name of the setup-configuration.
+	 * @param string $field_name  The name of the field.
+	 *
+	 * @return bool
+	 */
+	public function is_password_field( string $config_name, string $field_name ): bool {
+		return 'PasswordControl' === $this->get_field_type( $config_name, $field_name );
+	}
+
+	/**
+	 * Remove the values of password fields from the given values, before they are sent to the browser.
+	 *
+	 * @param string              $config_name The name of the setup-configuration.
+	 * @param array<string,mixed> $values      The values.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function remove_password_values( string $config_name, array $values ): array {
+		foreach ( array_keys( $values ) as $field_name ) {
+			// bail if this is not a password field.
+			if ( ! $this->is_password_field( $config_name, (string) $field_name ) ) {
+				continue;
+			}
+
+			unset( $values[ $field_name ] );
+		}
+
+		// return the resulting values.
+		return $values;
 	}
 
 	/**
