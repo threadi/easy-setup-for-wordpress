@@ -11,6 +11,7 @@ import './setup.scss';
 import RadioControlObject from './RadioControlObject';
 import SelectControlObject from './SelectControlObject';
 import TextControlObject from './TextControlObject';
+import PasswordControlObject from './PasswordControlObject';
 import ProgressBarObject from './ProgressBarObject';
 import NumberControlObject from './NumberControlObject';
 import CheckboxControlObject from './CheckboxControlObject';
@@ -232,6 +233,12 @@ class EasySetupForWordPress extends Component {
                 return <TextControlObject field_name={ field_name } field={ field } object={ this } />;
 
             /**
+             * Show PasswordControl component for setting.
+             */
+            case 'PasswordControl':
+                return <PasswordControlObject field_name={ field_name } field={ field } object={ this } />;
+
+            /**
              * Show Checkbox component for setting.
              */
             case 'CheckboxControl':
@@ -450,7 +457,13 @@ export const onSaveSetup = ( object ) => {
                 throw new Error(response.status);
             })
             .then(function (data) {
-                    object.setState({'fields': data, 'date': getActualDate(), 'step': next_step, 'saving': false});
+                    // add the defaults of the fields, which have been added with these fields.
+                    let state = addMissingDefaults( object, data );
+                    state.fields = data;
+                    state.date = getActualDate();
+                    state.step = next_step;
+                    state.saving = false;
+                    object.setState( state );
                 }
             )
             .catch(error => {
@@ -470,6 +483,47 @@ export const onSaveSetup = ( object ) => {
                 showError( error );
             } );
     }
+}
+
+/**
+ * Return the defaults of fields, which have no value yet.
+ *
+ * The defaults are set while loading the setup. Fields, which are loaded
+ * after a step has been saved (see "update_fields"), need them as well.
+ * Values the user has already entered are kept.
+ *
+ * @param object The setup object.
+ * @param fields The steps with their fields.
+ * @returns {{results: {}}}
+ */
+export function addMissingDefaults( object, fields ) {
+    let state = {
+        results: object.state.results
+    };
+
+    Object.keys( fields ).map( step => {
+        Object.keys( fields[step] ).map( field_name => {
+            // skip fields without a default.
+            if ( undefined === fields[step][field_name].default ) {
+                return;
+            }
+
+            // skip fields with a value.
+            if ( undefined !== object.state[field_name] && '' !== object.state[field_name] ) {
+                return;
+            }
+
+            state[field_name] = fields[step][field_name].default;
+
+            // mark it as valid, otherwise the continue button stays
+            // disabled until the user touches the field.
+            state.results[field_name] = {
+                'result': []
+            };
+        } );
+    } );
+
+    return state;
 }
 
 /**
@@ -575,6 +629,12 @@ export function setButtonDisabledState( object ) {
             fields_filled_count++;
         }
         else if( object.state.fields[object.state.step][field_name].type === 'TextControl' && object.state.fields[object.state.step][field_name].required && object.state.results[field_name] && object.state.results[field_name].filled && object.state.results[field_name].result.length === 0 ) {
+            fields_filled_count++;
+        }
+        else if( object.state.fields[object.state.step][field_name].type === 'PasswordControl' && ! object.state.fields[object.state.step][field_name].required ) {
+            fields_filled_count++;
+        }
+        else if( object.state.fields[object.state.step][field_name].type === 'PasswordControl' && object.state.fields[object.state.step][field_name].required && object.state.results[field_name] && object.state.results[field_name].filled && object.state.results[field_name].result.length === 0 ) {
             fields_filled_count++;
         }
         else if( object.state.fields[object.state.step][field_name].type === 'CheckboxControl' && ! object.state.fields[object.state.step][field_name].required ) {

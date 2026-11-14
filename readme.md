@@ -101,7 +101,36 @@ Following field-types are supported:
 * ProgressBar => shows a progressbar which will process what is defined via hook "wp_easy_setup_process"
 * RadioControl => shows a group of radio-boxes where the user should decide what to choose
 * TextControl => shows a single input-text-field
+* PasswordControl => shows a single input-field for a password, the input is hidden (see below)
 * Text => shows the text you defined in array-key "text"
+
+#### Passwords
+
+Use the PasswordControl for passwords, keys and tokens. It needs the values stored per user (see ``set_user_values()``).
+
+* The value is stored as entered, it is not sanitized like other values.
+* The value is never sent back to the browser. After loading the setup again the field is empty.
+* An empty field keeps the stored value when the step is saved.
+* Use the filter ``esfw_save_password_value`` to change the value before it is stored, e.g. to encrypt it, and the filter ``esfw_get_password_value`` to change it back when it is read via ``get_field_value()``.
+
+Example:
+
+```
+add_filter( 'esfw_save_password_value', function( string $value, string $field_name, string $config_name ): string {
+    if ( 'your-setup-name' !== $config_name ) {
+        return $value;
+    }
+    return your_encrypt( $value );
+}, 10, 3 );
+add_filter( 'esfw_get_password_value', function( string $value, string $field_name, string $config_name ): string {
+    if ( 'your-setup-name' !== $config_name ) {
+        return $value;
+    }
+    return your_decrypt( $value );
+}, 10, 3 );
+```
+
+Remove the stored values with ``delete_field_values()`` after the setup has been run.
 
 #### Other array keys
 
@@ -109,4 +138,5 @@ Following field-types are supported:
 * help => shows a html-formatted text below the field
 * placeholder => is used as such on field which support it
 * required => true if field is required for next step
+* default => the value the field gets, as long as the user has not entered one. This also works for fields, which are loaded after a step has been saved (see ``update_fields``).
 * validation_callback => PHP-callback to validate the entry
